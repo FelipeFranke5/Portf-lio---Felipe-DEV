@@ -74,8 +74,8 @@ services:
       # para acesso de fora do Docker.
       KEYCLOAK_JWKS_URI: http://keycloak:8080/auth/realms/website/protocol/openid-connect/certs
 
-      # CORS - origem do Angular rodando via `ng serve`
-      FRONT_END_URL: http://localhost:4200
+      # CORS - origem do Angular, servido através do NGINX de dev (porta 80)
+      FRONT_END_URL: http://localhost
 
       # SMTP fake para dev
       # Não impede o resto de funcionar.
@@ -99,8 +99,8 @@ services:
       context: ./website-frontend
       dockerfile: Dockerfile
     container_name: website_frontend_dev
-    ports:
-      - "4200:4200"     # ng serve, acessado direto (não passa pelo NGINX de dev)
+    expose:
+      - "4200"
     depends_on:
       - backend
     restart: unless-stopped
@@ -111,12 +111,13 @@ services:
     image: nginx:alpine
     container_name: website_nginx_dev
     ports:
-      - "80:80"     # HTTP: API (/api/) + Keycloak (/auth/)
+      - "80:80"     # HTTP: front-end (/) + API (/api/) + Keycloak (/auth/)
     volumes:
       - ./nginx/nginx.dev.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
       - backend
       - keycloak
+      - frontend
     restart: unless-stopped
     networks:
       - website_dev_net
