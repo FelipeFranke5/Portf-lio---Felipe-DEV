@@ -398,12 +398,14 @@ MAIL_PASS=app_password_aqui
 
 O `docker-compose.yml` de dev fica em `projetos/` (um nível acima de
 `website-backend/`), então os comandos abaixo devem ser executados a partir
-dessa pasta.
+dessa pasta. O front-end não expõe porta própria: ele é acessado através do
+NGINX de dev, em `http://localhost`, junto com `/api/*` e `/auth/*`.
 
 ```bash
 cd projetos
 
 # 1. Sobe todo o stack (Postgres, Keycloak, back-end, front-end, NGINX)
+#    Acesse tudo via http://localhost (front-end, API e Keycloak)
 docker compose up -d --build
 
 # 2. Alternativa: rodar o back-end fora do Docker (hot reload via devtools)
