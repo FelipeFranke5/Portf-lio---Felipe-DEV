@@ -357,8 +357,6 @@ role correta.</p>
 <h2 id="organização-do-código">Organização do Código</h2>
 <p>Esta seção descreve como cada parte do projeto está organizada.</p>
 <h3 id="front-end-angular">Front-End (Angular)</h3>
-<p>O front-end ainda não existe como código neste projeto, mas o plano de organização
-segue o padrão comum do Angular, separado em três grandes áreas:</p>
 <ul>
 <li><strong><code>core</code></strong> — tudo que é transversal à aplicação e não pertence a nenhuma feature
 específica: o guard de rota que protege <code>/admin</code>, o interceptor HTTP que injeta o
@@ -839,14 +837,23 @@ MAIL_PASS=app_password_aqui
 </code></pre>
 <hr>
 <h2 id="build---ambiente-de-dev">Build - Ambiente de DEV</h2>
-<pre><code class="language-bash"><span class="hljs-comment"># 1. Sobe todo o stack (Postgres, Keycloak, back-end, NGINX)</span>
+<p>O <code>docker-compose.yml</code> de dev fica em <code>projetos/</code> (um nível acima de
+<code>website-backend/</code>), então os comandos abaixo devem ser executados a partir
+dessa pasta. O front-end não expõe porta própria: ele é acessado através do
+NGINX de dev, em <code>http://localhost</code>, junto com <code>/api/*</code> e <code>/auth/*</code>.</p>
+<pre><code class="language-bash"><span class="hljs-built_in">cd</span> projetos
+
+<span class="hljs-comment"># 1. Sobe todo o stack (Postgres, Keycloak, back-end, front-end, NGINX)</span>
+<span class="hljs-comment">#    Acesse tudo via http://localhost (front-end, API e Keycloak)</span>
 docker compose up -d --build
 
 <span class="hljs-comment"># 2. Alternativa: rodar o back-end fora do Docker (hot reload via devtools)</span>
 <span class="hljs-comment">#    Ainda depende de subir postgres + keycloak (via docker compose up -d postgres keycloak)</span>
+<span class="hljs-built_in">cd</span> website-backend/website-backend
 ./mvnw spring-boot:run -Dspring.profiles.active=dev
 
-<span class="hljs-comment"># 3. Sobe Angular (fora do Docker; o NGINX de dev não serve estático)</span>
+<span class="hljs-comment"># 3. Alternativa: rodar o Angular fora do Docker (hot reload sem rebuild de imagem)</span>
+<span class="hljs-built_in">cd</span> website-frontend
 ng serve
 </code></pre>
 <hr>

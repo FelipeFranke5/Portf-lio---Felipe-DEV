@@ -98,9 +98,6 @@ Esta seção descreve como cada parte do projeto está organizada.
 
 ### Front-End (Angular)
 
-O front-end ainda não existe como código neste projeto, mas o plano de organização
-segue o padrão comum do Angular, separado em três grandes áreas:
-
 - **`core`** — tudo que é transversal à aplicação e não pertence a nenhuma feature
   específica: o guard de rota que protege `/admin`, o interceptor HTTP que injeta o
   token Bearer nas requisições autenticadas, e os serviços de baixo nível (cliente da
