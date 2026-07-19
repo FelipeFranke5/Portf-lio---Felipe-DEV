@@ -1,0 +1,78 @@
+# ═══════════════════════════════════════════════════════
+#  Configurações base (todos os perfis)
+# ═══════════════════════════════════════════════════════
+
+spring:
+  jackson:
+    deserialization:
+      fail-on-null-for-primitives: false
+  application:
+    name: website-backend
+
+  # ─── Banco de Dados ─────────────────────────────────
+  datasource:
+    url:      ${DB_URL:jdbc:postgresql://localhost:5432/website_db}
+    username: ${DB_USER:website_user}
+    password: ${DB_PASS:website_pass}
+    driver-class-name: org.postgresql.Driver
+
+  # ─── JPA / Hibernate ────────────────────────────────
+  jpa:
+    hibernate:
+      # validate: Flyway cria/atualiza o schema; Hibernate apenas valida
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        default_batch_fetch_size: 100
+
+  # ─── Flyway ─────────────────────────────────────────
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    # Inicialização automatizada com baseline-on-migrate = true
+    # Risco baixo
+    baseline-on-migrate: true
+    baseline-version: 1
+
+  # ─── OAuth2 Resource Server (Keycloak) ──────────────
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # URI do JWKS do Keycloak - Spring busca a chave pública aqui
+          # e valida o JWT localmente (sem chamada remota em cada request)
+          jwk-set-uri: ${KEYCLOAK_JWKS_URI:http://localhost:8180/realms/website/protocol/openid-connect/certs}
+
+  # ─── E-mail (SMTP) ──────────────────────────────────
+  mail:
+    host:     ${MAIL_HOST:smtp.gmail.com}
+    port:     ${MAIL_PORT:587}
+    username: ${MAIL_USER:user}
+    password: ${MAIL_PASS:pass}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+
+# ─── Servidor ─────────────────────────────────────────
+server:
+  port: 8085
+  # Quando rodar atrás do NGINX, confiar nos headers de forward
+  forward-headers-strategy: native
+
+# ─── Actuator ─────────────────────────────────────────
+management:
+  endpoints:
+    web:
+      exposure:
+        # Expõe apenas health e info
+        include: health,info
+  endpoint:
+    health:
+      show-details: when-authorized

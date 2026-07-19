@@ -1,0 +1,236 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+             https://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>4.1.0</version>
+        <relativePath/>
+    </parent>
+
+    <groupId>dev.franke.felipe</groupId>
+    <artifactId>website-backend</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <name>website-backend</name>
+    <description>Website pessoal — API REST</description>
+
+    <properties>
+        <java.version>21</java.version>
+    </properties>
+
+    <dependencies>
+
+        <!-- ═══════════════════════════════════════════════ -->
+        <!--  API Layer                                       -->
+        <!-- ═══════════════════════════════════════════════ -->
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+            <!-- REST controllers + Tomcat embutido + Jackson (serialização JSON) -->
+        </dependency>
+
+        <!-- ═══════════════════════════════════════════════ -->
+        <!--  Segurança / Autenticação (Keycloak / JWT)      -->
+        <!-- ═══════════════════════════════════════════════ -->
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+            <!-- Framework base: filters, SecurityFilterChain, @PreAuthorize -->
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
+            <!--
+                Valida o JWT emitido pelo Keycloak automaticamente via JWKS endpoint.
+                Configura-se em application.yml com spring.security.oauth2
+                .resourceserver.jwt.jwk-set-uri apontando para o Keycloak.
+            -->
+        </dependency>
+
+        <!-- ═══════════════════════════════════════════════ -->
+        <!--  Banco de Dados                                  -->
+        <!-- ═══════════════════════════════════════════════ -->
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa</artifactId>
+            <!-- Hibernate ORM + JpaRepository + query methods automáticos -->
+        </dependency>
+
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <scope>runtime</scope>
+            <!-- Driver JDBC do PostgreSQL. scope=runtime: só precisa em execução, não em compile -->
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-h2console</artifactId>
+            <!-- Console do H2 que poderá ser utilizado para realização de testes -->
+        </dependency>
+
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>runtime</scope>
+            <!-- Para os testes, vamos configurar o H2 como banco principal -->
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-flyway</artifactId>
+            <scope>runtime</scope>
+            <!-- Motor de migrations: aplica os arquivos SQL de db/migration ao subir -->
+            <!-- Na versão 4 do Spring Boot, o flyway-core não executa mais de forma automática,
+            sendo necessário este módulo para automatizar o processo de migração automática.
+             -->
+        </dependency>
+
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-database-postgresql</artifactId>
+        </dependency>
+
+        <!-- ═══════════════════════════════════════════════ -->
+        <!--  Validação e E-mail                              -->
+        <!-- ═══════════════════════════════════════════════ -->
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+            <!-- @NotBlank @Email @Size @Valid nos DTOs (formulário de contato, etc.) -->
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-mail</artifactId>
+            <!-- JavaMailSender para enviar e-mails no endpoint POST /api/contact -->
+        </dependency>
+
+        <!-- ═══════════════════════════════════════════════ -->
+        <!--  Observabilidade                                 -->
+        <!-- ═══════════════════════════════════════════════ -->
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+            <!--
+                Expõe /actuator/health — usado pelo Docker Compose para health check
+                e pelo NGINX para saber se o back-end está pronto.
+            -->
+        </dependency>
+
+        <!-- ═══════════════════════════════════════════════ -->
+        <!--  Developer Experience                            -->
+        <!-- ═══════════════════════════════════════════════ -->
+
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <optional>true</optional>
+            <!--
+                @Data, @Builder, @RequiredArgsConstructor, @Slf4j.
+                optional=true: não vaza como dependência transitiva para quem
+                depender deste módulo. Excluído do jar final no plugin abaixo.
+            -->
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-devtools</artifactId>
+            <scope>runtime</scope>
+            <optional>true</optional>
+            <!--
+                Restart automático ao salvar arquivos em dev.
+                scope=runtime + optional=true: ignorado completamente no jar de produção.
+            -->
+        </dependency>
+
+        <!-- ═══════════════════════════════════════════════ -->
+        <!--  Testes                                          -->
+        <!-- ═══════════════════════════════════════════════ -->
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+            <!-- JUnit 5 + Mockito + MockMvc + AssertJ + Testcontainers (opt-in) -->
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-test</artifactId>
+            <scope>test</scope>
+            <!--
+                @WithMockUser, SecurityMockMvcRequestPostProcessors.jwt() —
+                indispensável para testar endpoints protegidos sem subir o Keycloak.
+            -->
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-testcontainers</artifactId>
+            <scope>test</scope>
+            <!-- Testcontainers para os testes de integração -->
+        </dependency>
+
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers-junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers-postgresql</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-webmvc-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <excludes>
+                        <exclude>
+                            <!--
+                                Lombok só é necessário em tempo de compilação
+                                (geração de código via annotation processor).
+                                Excluir do jar de produção reduz o tamanho do artefato.
+                            -->
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                        </exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <source>${java.version}</source>
+                    <target>${java.version}</target>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>

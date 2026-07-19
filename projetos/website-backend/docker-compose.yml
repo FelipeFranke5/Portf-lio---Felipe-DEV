@@ -1,0 +1,115 @@
+# ============================================================
+#  docker-compose.yml - DEV
+#
+#  Sobe: back-end (Spring Boot), PostgreSQL, NGINX (proxy de dev)
+#  e Keycloak (modo dev, com admin/admin padrão).
+#
+#  Uso:
+#    docker compose up -d --build
+#
+# ============================================================
+
+services:
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: website_db_dev
+    environment:
+      POSTGRES_DB: website_db
+      POSTGRES_USER: website_user
+      POSTGRES_PASSWORD: website_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data_dev:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U website_user -d website_db"]
+      start_period: 60s
+      interval: 10s
+      timeout: 10s
+      retries: 10
+    restart: unless-stopped
+    networks:
+      - website_dev_net
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:latest
+    container_name: website_keycloak_dev
+    command: start-dev
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_HTTP_RELATIVE_PATH: /auth
+      # Habilita /auth/health/ready, usado no healthcheck abaixo
+      KC_HEALTH_ENABLED: "true"
+    ports:
+      - "8083:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/auth/health/ready || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 20s
+    restart: unless-stopped
+    networks:
+      - website_dev_net
+
+  backend:
+    build:
+      context: ./website-backend
+      dockerfile: Dockerfile
+    container_name: website_api_dev
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+
+      # Banco de dados
+      DB_URL: jdbc:postgresql://postgres:5432/website_db
+      DB_USER: website_user
+      DB_PASS: website_pass
+
+      # Keycloak (comunicação server-to-server, direto no container)
+      # IMPORTANTE: dentro da rede Docker usamos a porta INTERNA do container (8080),
+      # não a porta 8083 publicada no host. "8083:8080" no serviço keycloak só vale
+      # para acesso de fora do Docker.
+      KEYCLOAK_JWKS_URI: http://keycloak:8080/auth/realms/website/protocol/openid-connect/certs
+
+      # CORS - origem do Angular rodando via `ng serve`
+      FRONT_END_URL: http://localhost:4200
+
+      # SMTP fake para dev
+      # Não impede o resto de funcionar.
+      MAIL_HOST: localhost
+      MAIL_PORT: "1025"
+      MAIL_USER: dev@localhost
+      MAIL_PASS: dev
+    expose:
+      - "8085"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      keycloak:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - website_dev_net
+
+  nginx:
+    image: nginx:alpine
+    container_name: website_nginx_dev
+    ports:
+      - "80:80"     # HTTP: API (/api/) + Keycloak (/auth/)
+    volumes:
+      - ./nginx/nginx.dev.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - backend
+      - keycloak
+    restart: unless-stopped
+    networks:
+      - website_dev_net
+
+volumes:
+  postgres_data_dev:
+
+networks:
+  website_dev_net:
+    driver: bridge

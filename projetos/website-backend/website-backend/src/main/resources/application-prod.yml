@@ -1,0 +1,40 @@
+# ═══════════════════════════════════════════════════════
+#  Produção
+#  Ativo com: -Dspring.profiles.active=prod
+#  ou via SPRING_PROFILES_ACTIVE=prod no docker-compose.dev.yml
+# ═══════════════════════════════════════════════════════
+
+
+spring:
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+  jpa:
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+
+management:
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    root: ERROR
+    dev.franke.felipe: ERROR
+    org.springframework: ERROR
+    org.springframework.security: ERROR
+    org.hibernate.SQL: ERROR
+    org.hibernate.type.descriptor.sql: ERROR
+
+server:
+  port: 8085
+  forward-headers-strategy: native
+  error:
+    include-message: never
+    include-binding-errors: never
+    include-stacktrace: never
+    whitelabel:
+      enabled: false
+  shutdown: graceful

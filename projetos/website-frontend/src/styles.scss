@@ -1,0 +1,17 @@
+/* Estilos globais da aplicação.
+ * Estilos específicos de cada feature/componente devem ficar
+ * nos respectivos arquivos .scss do componente (encapsulamento padrão do Angular). */
+
+:root {
+  color-scheme: light dark;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
