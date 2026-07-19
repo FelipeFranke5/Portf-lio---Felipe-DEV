@@ -113,7 +113,7 @@ services:
     ports:
       - "80:80"     # HTTP: API (/api/) + Keycloak (/auth/)
     volumes:
-      - ./website-backend/nginx/nginx.dev.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx/nginx.dev.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
       - backend
       - keycloak
