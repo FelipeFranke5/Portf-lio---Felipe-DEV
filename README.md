@@ -308,16 +308,29 @@ falhou, permitindo consultar depois quais mensagens nunca chegaram por e-mail.
 ## NGINX - Ambiente de DEV
 
 ```nginx
+# ============================================================
+#  nginx/nginx.dev.conf
+#  NGINX de desenvolvimento: expõe o back-end (Spring Boot), o
+#  Keycloak e o front-end (Angular via ng serve), para permitir
+#  testes de ponta a ponta.
+# ============================================================
+
 # rate=1r/s => 1 request/segundo por IP, em média, para /api/.
 limit_req_zone $binary_remote_addr zone=api_limit:10m rate=1r/s;
+
+# Responde 429 (Too Many Requests) em vez do 503 padrão quando o limite estoura
 limit_req_status 429;
 
 server {
     listen 80;
     server_name localhost;
 
+    # Spring Boot API
+    # proxy_pass sem path no final => repassa a URI original (/api/...) sem
+    # reescrever, igual ao nginx.conf de produção do ARCHITECTURE.md.
     location /api/ {
         limit_req zone=api_limit burst=20 nodelay;
+        
         proxy_pass         http://backend:8085;
         proxy_set_header   Host              $host;
         proxy_set_header   X-Real-IP         $remote_addr;
@@ -325,8 +338,11 @@ server {
         proxy_set_header   X-Forwarded-Proto $scheme;
     }
 
+    # Actuator (health check)
     location /actuator/ {
+
         limit_req zone=api_limit burst=20 nodelay;
+        
         proxy_pass         http://backend:8085;
         proxy_set_header   Host              $host;
         proxy_set_header   X-Real-IP         $remote_addr;
@@ -334,9 +350,15 @@ server {
         proxy_set_header   X-Forwarded-Proto $scheme;
     }
 
-    # Keycloak deste compose roda com KC_HTTP_RELATIVE_PATH=/auth
+    # Keycloak
+    # IMPORTANTE: o serviço keycloak neste compose está configurado com
+    # KC_HTTP_RELATIVE_PATH=/auth, então repassar a URI original (/auth/...)
+    # sem reescrita bate certinho com o contexto configurado no Keycloak.
     location /auth/ {
+
         limit_req zone=api_limit burst=20 nodelay;
+
+        # Porta INTERNA do container (8080), não a 8083 publicada no host
         proxy_pass         http://keycloak:8080;
         proxy_set_header   Host              $host;
         proxy_set_header   X-Real-IP         $remote_addr;
@@ -344,11 +366,21 @@ server {
         proxy_set_header   X-Forwarded-Proto $scheme;
     }
 
-    location = / {
-        default_type text/plain;
-        return 200 "NGINX dev ativo.\nBack-end:  /api/*  e /actuator/*\nKeycloak:  /auth/*\n";
+    # Front-end (Angular via `ng serve`, rodando no container frontend)
+    # proxy_http_version 1.1 + Upgrade/Connection => necessário para o
+    # WebSocket do live reload do `ng serve` funcionar através do proxy.
+    location / {
+        proxy_pass         http://frontend:4200;
+        proxy_http_version 1.1;
+        proxy_set_header   Upgrade           $http_upgrade;
+        proxy_set_header   Connection        "upgrade";
+        proxy_set_header   Host              $host;
+        proxy_set_header   X-Real-IP         $remote_addr;
+        proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $scheme;
     }
 }
+
 ```
 
 ---

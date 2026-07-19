@@ -716,16 +716,29 @@ limite), o evento não passa mais despercebido: além de um <code>log.error</cod
 registro é criado em <strong>Log Interno</strong> com os dados do contato que
 falhou, permitindo consultar depois quais mensagens nunca chegaram por e-mail.</p>
 <h2 id="nginx---ambiente-de-dev">NGINX - Ambiente de DEV</h2>
-<pre><code class="language-nginx"><span class="hljs-comment"># rate=1r/s =&gt; 1 request/segundo por IP, em média, para /api/.</span>
+<pre><code class="language-nginx"><span class="hljs-comment"># ============================================================</span>
+<span class="hljs-comment">#  nginx/nginx.dev.conf</span>
+<span class="hljs-comment">#  NGINX de desenvolvimento: expõe o back-end (Spring Boot), o</span>
+<span class="hljs-comment">#  Keycloak e o front-end (Angular via ng serve), para permitir</span>
+<span class="hljs-comment">#  testes de ponta a ponta.</span>
+<span class="hljs-comment"># ============================================================</span>
+
+<span class="hljs-comment"># rate=1r/s =&gt; 1 request/segundo por IP, em média, para /api/.</span>
 <span class="hljs-attribute">limit_req_zone</span> <span class="hljs-variable">$binary_remote_addr</span> zone=api_limit:<span class="hljs-number">10m</span> rate=1r/s;
+
+<span class="hljs-comment"># Responde 429 (Too Many Requests) em vez do 503 padrão quando o limite estoura</span>
 <span class="hljs-attribute">limit_req_status</span> <span class="hljs-number">429</span>;
 
 <span class="hljs-section">server</span> {
     <span class="hljs-attribute">listen</span> <span class="hljs-number">80</span>;
     <span class="hljs-attribute">server_name</span> localhost;
 
+    <span class="hljs-comment"># Spring Boot API</span>
+    <span class="hljs-comment"># proxy_pass sem path no final =&gt; repassa a URI original (/api/...) sem</span>
+    <span class="hljs-comment"># reescrever, igual ao nginx.conf de produção do ARCHITECTURE.md.</span>
     <span class="hljs-section">location</span> /api/ {
         <span class="hljs-attribute">limit_req</span> zone=api_limit burst=<span class="hljs-number">20</span> nodelay;
+        
         <span class="hljs-attribute">proxy_pass</span>         http://backend:8085;
         <span class="hljs-attribute">proxy_set_header</span>   Host              <span class="hljs-variable">$host</span>;
         <span class="hljs-attribute">proxy_set_header</span>   X-Real-IP         <span class="hljs-variable">$remote_addr</span>;
@@ -733,8 +746,11 @@ falhou, permitindo consultar depois quais mensagens nunca chegaram por e-mail.</
         <span class="hljs-attribute">proxy_set_header</span>   X-Forwarded-Proto <span class="hljs-variable">$scheme</span>;
     }
 
+    <span class="hljs-comment"># Actuator (health check)</span>
     <span class="hljs-section">location</span> /actuator/ {
+
         <span class="hljs-attribute">limit_req</span> zone=api_limit burst=<span class="hljs-number">20</span> nodelay;
+        
         <span class="hljs-attribute">proxy_pass</span>         http://backend:8085;
         <span class="hljs-attribute">proxy_set_header</span>   Host              <span class="hljs-variable">$host</span>;
         <span class="hljs-attribute">proxy_set_header</span>   X-Real-IP         <span class="hljs-variable">$remote_addr</span>;
@@ -742,9 +758,15 @@ falhou, permitindo consultar depois quais mensagens nunca chegaram por e-mail.</
         <span class="hljs-attribute">proxy_set_header</span>   X-Forwarded-Proto <span class="hljs-variable">$scheme</span>;
     }
 
-    <span class="hljs-comment"># Keycloak deste compose roda com KC_HTTP_RELATIVE_PATH=/auth</span>
+    <span class="hljs-comment"># Keycloak</span>
+    <span class="hljs-comment"># IMPORTANTE: o serviço keycloak neste compose está configurado com</span>
+    <span class="hljs-comment"># KC_HTTP_RELATIVE_PATH=/auth, então repassar a URI original (/auth/...)</span>
+    <span class="hljs-comment"># sem reescrita bate certinho com o contexto configurado no Keycloak.</span>
     <span class="hljs-section">location</span> /auth/ {
+
         <span class="hljs-attribute">limit_req</span> zone=api_limit burst=<span class="hljs-number">20</span> nodelay;
+
+        <span class="hljs-comment"># Porta INTERNA do container (8080), não a 8083 publicada no host</span>
         <span class="hljs-attribute">proxy_pass</span>         http://keycloak:8080;
         <span class="hljs-attribute">proxy_set_header</span>   Host              <span class="hljs-variable">$host</span>;
         <span class="hljs-attribute">proxy_set_header</span>   X-Real-IP         <span class="hljs-variable">$remote_addr</span>;
@@ -752,11 +774,21 @@ falhou, permitindo consultar depois quais mensagens nunca chegaram por e-mail.</
         <span class="hljs-attribute">proxy_set_header</span>   X-Forwarded-Proto <span class="hljs-variable">$scheme</span>;
     }
 
-    <span class="hljs-section">location</span> = / {
-        <span class="hljs-attribute">default_type</span> text/plain;
-        <span class="hljs-attribute">return</span> <span class="hljs-number">200</span> <span class="hljs-string">&quot;NGINX dev ativo.\nBack-end:  /api/*  e /actuator/*\nKeycloak:  /auth/*\n&quot;</span>;
+    <span class="hljs-comment"># Front-end (Angular via `ng serve`, rodando no container frontend)</span>
+    <span class="hljs-comment"># proxy_http_version 1.1 + Upgrade/Connection =&gt; necessário para o</span>
+    <span class="hljs-comment"># WebSocket do live reload do `ng serve` funcionar através do proxy.</span>
+    <span class="hljs-section">location</span> / {
+        <span class="hljs-attribute">proxy_pass</span>         http://frontend:4200;
+        <span class="hljs-attribute">proxy_http_version</span> <span class="hljs-number">1</span>.<span class="hljs-number">1</span>;
+        <span class="hljs-attribute">proxy_set_header</span>   Upgrade           <span class="hljs-variable">$http_upgrade</span>;
+        <span class="hljs-attribute">proxy_set_header</span>   Connection        <span class="hljs-string">&quot;upgrade&quot;</span>;
+        <span class="hljs-attribute">proxy_set_header</span>   Host              <span class="hljs-variable">$host</span>;
+        <span class="hljs-attribute">proxy_set_header</span>   X-Real-IP         <span class="hljs-variable">$remote_addr</span>;
+        <span class="hljs-attribute">proxy_set_header</span>   X-Forwarded-For   <span class="hljs-variable">$proxy_add_x_forwarded_for</span>;
+        <span class="hljs-attribute">proxy_set_header</span>   X-Forwarded-Proto <span class="hljs-variable">$scheme</span>;
     }
 }
+
 </code></pre>
 <hr>
 <h2 id="variáveis-de-ambiente">Variáveis de Ambiente</h2>
