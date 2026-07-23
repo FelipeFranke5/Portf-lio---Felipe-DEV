@@ -106,6 +106,8 @@ Esta seção descreve como cada parte do projeto está organizada.
   como um módulo próprio, e uma área `admin` separada para os formulários de
   CRUD protegidos por autenticação.
 - **`shared`** — componentes, pipes e diretivas reaproveitáveis entre features.
+  Inclui os componentes padrão `HeaderComponent` (`app-header`) e `FooterComponent`
+  (`app-footer`), já em uso no `HomeComponent` e disponíveis para as demais páginas.
 
 ### Back-End (Spring Boot)
 

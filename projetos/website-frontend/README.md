@@ -31,6 +31,8 @@ src/app/
 │
 └── shared/          # componentes, pipes e diretivas reaproveitáveis entre features
     ├── components/
+    │   ├── header/          # app-header: cabeçalho padrão com navegação (Início/Portfólio/Habilidades/Contato)
+    │   └── footer/          # app-footer: rodapé padrão com copyright
     ├── pipes/
     └── directives/
 ```
@@ -41,10 +43,33 @@ comum nunca vai acessar (ex.: toda a área `admin`).
 
 ## Status atual
 
-Apenas o bootstrap da aplicação foi criado (estrutura de pastas, roteamento,
-componentes standalone vazios com `TODO`, guard e interceptor stub). **Nenhuma
-lógica de negócio, chamada real à API ou integração com Keycloak foi
+Bootstrap da aplicação criado (estrutura de pastas, roteamento, guard e
+interceptor stub). A maioria dos componentes de feature ainda são standalone
+vazios com `TODO`. **Nenhuma chamada real à API ou integração com Keycloak foi
 implementada ainda** — isso fica para os próximos passos.
+
+`HomeComponent` já possui conteúdo estático (hero/about) e utiliza os novos
+componentes padrão `HeaderComponent` (`app-header`) e `FooterComponent`
+(`app-footer`), criados em `shared/components/`. Esses dois componentes são
+standalone e reaproveitáveis — qualquer outra feature pode importá-los e
+incluir `<app-header>`/`<app-footer>` no próprio template.
+
+`FooterComponent` também exibe links para as redes sociais (LinkedIn, GitHub
+e Instagram), com ícones SVG inline. As URLs (`linkedinUrl`, `githubUrl`,
+`instagramUrl` em `footer.component.ts`) estão com valores placeholder e
+precisam ser preenchidas manualmente com os perfis reais.
+
+Os três blocos de conteúdo do `HomeComponent` (introdução, Sobre Mim e
+Primeiros passos na programação) são exibidos como um carrossel — apenas um
+trecho fica visível por vez, com transição animada (`transform: translateX`)
+entre eles. Navegação via botões anterior/próximo (`previousSlide()` /
+`nextSlide()`) ou diretamente pelos indicadores/dots (`goToSlide(index)`).
+Cada trecho tem cor de fundo e de fonte próprias, definidas em
+`home.component.scss`. O card do carrossel tem largura máxima de 960px e
+altura mínima de 560px (antes 720px/420px), os títulos `h1`/`h2` de cada
+trecho são centralizados, e o GIF do trecho de introdução é exibido com
+tamanho fixo (420x260px, `object-fit: cover`) para caber de forma adequada
+no carrossel.
 
 ## Rodando localmente
 
