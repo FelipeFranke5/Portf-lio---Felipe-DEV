@@ -1,6 +1,6 @@
 export const environment = {
   production: false,
-  apiUrl: '/api',
+  apiUrl: 'http://localhost/api',
   keycloak: {
     url: '/auth',
     realm: 'website',
